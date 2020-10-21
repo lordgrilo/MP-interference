@@ -321,5 +321,47 @@ def all_flows_MPG(graph, graph_paths):
         # except:
         #     flow_value[k] = np.nan
     return flow_value;
+
+
+def weighted_task_path_interference(g, p1, p2):
+    if len(set(p1).intersection(set(p2)))>0:
+        return True;
+    count = 0;
+    for l in range(len(p1)-1):
+        if p2[l+1] in list(g.successors(p1[l])) or p1[l+1] in list(g.successors(p2[l])):
+        	count+=1;
+    return count;
+
+
+def MP_task_interference_graph(graph, paths=None):
+    return_paths = False;
+    if paths==None:
+        return_paths = True;
+        mp_dict = nx.get_node_attributes(graph, 'subset');
+        tot_units = np.sum(np.array(list(nx.get_node_attributes(graph, 'subset').values()))==0);
+        vals = list(set(list(mp_dict.values())))
+        min_set, max_set = np.min(vals), np.max(vals);
+        output_nodes = [(max_set, x) for x in range(tot_units)]
+        input_nodes = [(min_set, x) for x in range(tot_units)]
+        paths = {}
+        for n, nn in product(input_nodes, output_nodes):
+            ps = list(nx.all_simple_paths(graph, n, nn));
+            if len(ps)>0:
+                paths[(n, nn)] = ps;
+    node_path_list = []
+    for k in paths:
+        for kk in paths[k]:
+            node_path_list.append(tuple(kk))
+    ig = nx.Graph() # interference graph
+    ig.add_nodes_from(node_path_list);
+    for tf1, tf2 in combinations(node_path_list,2):
+        w = weighted_task_path_interference(graph, tf1, tf2);
+        if w>0:
+            ig.add_edge(tf1, tf2, weight=w);
+    if return_paths==True:
+        return ig, paths;
+    else:
+        return ig;
+
     
     
